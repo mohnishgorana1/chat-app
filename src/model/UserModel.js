@@ -28,6 +28,10 @@ const userSchema = mongoose.Schema(
     //   required: true,
     //   default: false,
     // },
+    isAcceptingMessages: {
+      type: Boolean,
+      default: true
+    }
   },
   { timestaps: true }
 );
