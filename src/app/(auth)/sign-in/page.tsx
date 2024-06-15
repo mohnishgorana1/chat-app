@@ -128,7 +128,7 @@ function SignInPage() {
           </Button>
         </form>
         <span className="text-white-1 text-sm sm:text-[15px]">Do not have an account ?&nbsp;
-          <Link href={'/sign-in'} className="text-pink-600  underline ">
+          <Link href={'/sign-up'} className="text-pink-600  underline ">
             Click to Register
           </Link>
         </span>

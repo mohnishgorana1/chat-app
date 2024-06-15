@@ -102,7 +102,7 @@ export const POST = async (request: NextRequest) => {
         public_id: "",
         secure_url: ""
       },
-      isAcceptingMessages: false
+      isAcceptingMessages: true
     })
 
     try {

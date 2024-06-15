@@ -1,10 +1,176 @@
 'use client'
+import { Button } from '@/src/components/ui/button'
+import { ScrollArea } from '@radix-ui/react-scroll-area'
+import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
+import { AiOutlineClose, AiOutlineCloseCircle } from "react-icons/ai";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { CiSearch } from "react-icons/ci";
+import { FaEllipsisVertical } from "react-icons/fa6";
+import { IoMdSend } from "react-icons/io";
+import Image from 'next/image'
+import axios from 'axios'
+import toast from 'react-hot-toast';
+import { deleteCookie } from 'cookies-next'
 
 function Dashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userId, setUserId] = useState(null)
-  const [name, setName] = useState("")
+  const [user, setUser] = useState(null)
+
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchedChats, setSearchedChats] = useState(null)
+  const [searchKeyword, setSearchKeyword] = useState("")
+
+  const [myChats, setMyChats] = useState([])
+  const [currentChat, setCurrentChat] = useState(null)
+  const [currentChatUser, setCurrentChatUser] = useState(null)
+
+  const [isChatWindowOpen, setIsChatWindowOpen] = useState(false)
+
+  const [messageContent, setMessageContent] = useState("")
+  const [messages, setMessages] = useState([])
+
+
+  function handleLogout() {
+    // cookie
+    deleteCookie('token')
+    deleteCookie('user')
+
+    // local storage
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+
+    console.log("Logout Success");
+    setIsLoggedIn(false)
+
+    toast.success("Logout Success")
+  }
+
+  async function getAllUsers(searchKeyword: string, userId: string) {
+    if (!searchKeyword) {
+      return
+    }
+    try {
+      setIsSearching(true)
+      console.log("search", searchKeyword);
+
+      const response = await axios.post('/api/get-all-users', { searchKeyword, userId: userId })
+      console.log(response);
+      if (response?.data?.success) {
+        setSearchedChats(response?.data?.users)
+      }
+
+    } catch (error) {
+      console.log(error);
+    }
+
+  }
+  function abortSearch() {
+    setIsSearching(false)
+    setSearchedChats(null)
+    setSearchKeyword("")
+  }
+
+  async function fetchAllMessages(chat) {
+    console.log("now fetch messages");
+    console.log(chat);
+    try {
+      const response = await axios.post('/api/fetch-messages', { chatId: chat._id })
+      console.log(response);
+
+      if (response?.data?.success) {
+        setMessages(response.data.messages)
+      }
+    } catch (error) {
+      toast.error("Error Fetching Messages")
+    }
+  }
+
+
+  async function accessChat(user: any) {
+    console.log(`creating chat btw  requestPerson: ${user._id}, myId: ${userId}`,);
+
+    try {
+      const response = await axios.post('/api/access-chat', {
+        requestedPersonToChat: user._id,
+        requestingPersonForChat: userId
+      })
+      console.log(response);
+
+      if (response?.data?.success) {
+        if (response.data.isChatAlreadyExist) {
+          toast.success("Chat Already Exists")
+        }
+        toast.success(response.data.message)
+        abortSearch()
+
+
+        openChat(response.data.chat)
+
+      }
+    } catch (error) {
+      toast.error("Can't Create Chat")
+    }
+  }
+
+  async function fetchAllChats() {
+    try {
+      const response = await axios.post('/api/fetch-chats', { userId })
+      console.log(response);
+      toast.success("Chats Fetched Successfully!")
+
+      const fetchedChats = response.data.chats
+
+      setMyChats(fetchedChats)
+      console.log(myChats);
+
+    } catch (error) {
+      toast.error("Error Fetching Chats!")
+    }
+  }
+
+
+  async function openChat(chat) {
+    console.log("curr Chat", chat);
+    setIsChatWindowOpen(true)
+
+    setCurrentChat(chat)
+
+    fetchAllMessages(chat)
+  }
+
+  // send a new message and update chat window
+  async function sendMessage(e: any, chat, messageContent: string) {
+    e.preventDefault()
+    console.log(chat._id, messageContent);
+
+    try {
+      const response = await axios.post('/api/send-message', {
+        chatId: chat._id,
+        messageContent: messageContent,
+        senderId: userId
+      })
+      console.log(response);
+      if (response.data.success) {
+        setMessageContent("")
+        fetchAllMessages(chat) // Fetch messages again to update the chat window
+      }
+
+    } catch (error: any) {
+      toast.error(error.message)
+    }
+  }
 
 
   useEffect(() => {
@@ -14,13 +180,209 @@ function Dashboard() {
       const currentUser = JSON.parse(user)
       setIsLoggedIn(true)
       setUserId(currentUser.id)
-      setName(currentUser.name)
+      setUser(currentUser)
     }
+
+    // fetchAllChats()
+
   }, [])
   return (
-    <div>
-      {userId && <p>{name}</p> }
-    </div>
+    <main className='w-full flex flex-col min-h-screen bg-black-3 sm:px-4 pb-5'>
+      <nav className='bg-black-2 flex items-center justify-between px-10 my-2  py-3 rounded-2xl'>
+        <Link href={'/'} className='text-pink-600 text-xl sm:text-3xl font-extralight tracking-wider'>QuickChat</Link>
+        {
+          !isLoggedIn ? (
+            <Link href={'/sign-in'}>
+              <Button className='bg-pink-600 hover:bg-pink-700 font-extrabold px-8 py-2 rounded-lg text-white-1'>Login</Button>
+            </Link>
+          ) : (
+            <div className='flex items-center justify-center gap-3'>
+              <div className='bg-pink-600 hover:bg-pink-700 font-extrabold px-8 py-2 rounded-lg text-white-1'>
+                <AlertDialog>
+                  <AlertDialogTrigger>Profile</AlertDialogTrigger>
+                  <div className='relative'>
+                    <AlertDialogContent className='bg-white-1 '>
+                      <div>
+                        <AlertDialogCancel className='p-0 bg-black-6 text-white-1 hover:bg-black-3 border-2 absolute top-1 right-2'>
+                          <Button className='font-bold'>Close</Button>
+                        </AlertDialogCancel>
+                      </div>
+                      <div className='w-full flex flex-col items-center justify-center gap-8'>
+                        <h1 className='font-bold text-xl sm:text-3xl'>Profile</h1>
+                        {user && (
+                          <section className='flex flex-col gap-4'>
+                            <Image src={user?.avatar.secure_url} width={150} height={150} alt='avatar' className='rounded-full self-center' />
+                            <span className='flex items-center gap-5'>
+                              <p className='font-bold'>Name: </p>
+                              <p>{user?.name}</p>
+                            </span>
+                            <span className='flex items-center gap-5'>
+                              <p className='font-bold'>Email: </p>
+                              <p>{user?.email}</p>
+                            </span>
+                          </section>
+                        )
+                        }
+                      </div>
+                    </AlertDialogContent>
+                  </div>
+
+                </AlertDialog>
+              </div>
+              <Button className='bg-black-3 border-2 border-black-3 hover:border-white-1 font-extrabold px-7 py-2 rounded-lg text-white-1' onClick={handleLogout}>Logout</Button>
+              <button className='p-2 border-2 bg-transparent text-blue-600 border-blue-600' onClick={fetchAllChats}>FetchChats</button>
+            </div>
+
+          )
+        }
+
+
+
+
+
+      </nav>
+      <div className='h-[90vh] grid grid-cols-12 gap-4'>
+
+        <div className='max-h-[90vh] sm:col-span-3 bg-black-1 rounded-2xl sm:px-5 sm:pt-5'>
+          {/* searchChats */}
+          <div className="rounded-xl w-full flex items-center justify-between border-2 border-black-4">
+            <input
+              type="text"
+              placeholder='Search User'
+              className='w-[70%] bg-transparent h-8 pl-4 border-none text-white-1 font-extrabold '
+              value={searchKeyword}
+              name='searchKeyword'
+              onChange={(e) => {
+                setSearchKeyword(e.target.value)
+                setIsSearching(true)
+              }}
+            />
+            <span className='w-[30%] flex items-center justify-between px-2'>
+              <AiOutlineClose className='text-white-2' onClick={abortSearch} />
+              <CiSearch
+                className=' text-white-1 font-extrabold h-6 text-3xl cursor-pointer'
+                onClick={() => getAllUsers(searchKeyword, userId!)}
+              />
+            </span>
+          </div>
+
+          {/* chatsPanel */}
+          {isSearching &&
+            (
+              <section className='h-[72vh] bg-black-4'>
+                {searchedChats &&
+                  (
+                    searchedChats.map((user) => (
+                      <div
+                        key={user._id}
+                        className='border border-x-0 border-y-black-3 py-2 flex mt-5 items-center sm:px-3 '
+                      >
+                        <Image
+                          src={user.avatar.secure_url} alt='user' height={28} width={48}
+                          className='rounded-full'
+                        />
+                        <span className='w-full flex items-center justify-between'>
+                          <h1 className='ml-2 font-bold text-white-1'>{user.name}</h1>
+                          <span
+                            className='bg-blue-300 rounded-xl text-sm px-2 py-1 cursor-pointer hover:scale-105 duration-200 ease-in font-bold'
+                            onClick={(e) => accessChat(user)}
+                          >Chat
+                          </span>
+                        </span>
+                      </div>
+                    ))
+                  )
+                }
+              </section>
+            )
+          }
+
+          {/* all fetched chats  */}
+          <div className='sm:px-3 mt-5 '>
+            {
+              myChats && (
+                myChats.map((chat) => {
+                  const otherUser = chat.users.find(user => user._id.toString() !== userId)
+                  console.log(otherUser);
+                  return (
+                    <section
+                      key={chat._id}
+                      className='z-20 border py-2 cursor-pointer flex mt-5 items-center justify-between sm:px-3'
+                      onClick={() => openChat(chat)}
+                    >
+                      <Image
+                        src={otherUser?.avatar.secure_url} alt='user' height={48} width={48}
+                        className='rounded-full'
+                      />
+                      <h1 className='font-bold text-white-1'>{otherUser?.name}</h1>
+
+                    </section>
+
+                  )
+                })
+              )
+            }
+          </div>
+
+
+        </div>
+
+        <section className='max-h-[90vh] sm:col-span-9 bg-black-1 rounded-2xl'>
+          {/* chatWindow */}
+          {
+            currentChat && (() => {
+              const otherUser = currentChat.users.find(user => user._id.toString() !== userId)
+              console.log(otherUser);
+
+              return (
+                <div className='h-[87vh] m-1'>
+                  <header className='mt-2 mx-1 rounded-xl h-[10vh] bg-black-3 flex items-center justify-between '>
+                    <span className='ml-2 sm:ml-4 flex items-center gap-3'>
+                      <Image src={otherUser.avatar.secure_url} width={52} height={52} alt='avatar' className='rounded-full' />
+                      <h1 className='sm:pl-5 pl-3  text-white-1 font-extrabold text-xl sm:text-3xl'>{otherUser.name}</h1>
+                    </span>
+                    <Button className='border w-12 mr-5' >
+                      <FaEllipsisVertical className='text-white-1 font-bold text-xl' />
+                    </Button>
+                  </header>
+                  <section className='mt-2 mx-1 rounded-xl bg-black-3 h-[75vh] flex flex-col'>
+                    <div className='h-[71vh] overflow-y-scroll p-4'>
+                      {/* all messages */}
+
+                      {
+                        messages.map(message => (
+                          <div
+                            key={message._id}
+                            className={`flex ${message.sender._id === userId ? 'justify-end' : 'justify-start'} mb-2 `}
+                          >
+                            <div className={`max-w-xs p-2 rounded-lg ${message.sender._id === userId ? 'bg-blue-500 text-white' : 'bg-pink-300 text-black'}`}>
+                              {message.content}
+                            </div>
+                          </div>
+                        ))
+                      }
+
+                    </div>
+                    <form className='w-full flex items-center relative' onSubmit={(e) => sendMessage(e, currentChat, messageContent)}>
+                      <input type="text"
+                        placeholder='Enter Message'
+                        value={messageContent}
+                        onChange={(e) => setMessageContent(e.target.value)}
+                        className='absolute left-0 w-full bg-black-4 h-[7vh] rounded-b-lg rounded-br-none pl-5 text-white-1 border-0 outline-0'
+                      />
+                      <Button type='submit' className='absolute right-0 h-[7vh] bg-pink-600 text-white rounded-tl-none rounded-bl-none'>
+                        <IoMdSend />
+                      </Button>
+                    </form>
+
+                  </section>
+                </div>
+              )
+            })()
+          }
+        </section>
+      </div>
+    </main >
   )
 }
 

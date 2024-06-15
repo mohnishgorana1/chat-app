@@ -3,16 +3,16 @@ import mongoose from "mongoose";
 const userSchema = mongoose.Schema(
   {
     name: {
-      type: "String",
+      type: String,
       required: true,
     },
     email: {
-      type: "String",
+      type: String,
       unique: true,
       required: true,
     },
     password: {
-      type: "String",
+      type: String,
       required: true,
     },
     avatar: {
@@ -23,19 +23,14 @@ const userSchema = mongoose.Schema(
         type: String,
       },
     },
-    // isAdmin: {
-    //   type: Boolean,
-    //   required: true,
-    //   default: false,
-    // },
     isAcceptingMessages: {
       type: Boolean,
       default: true
     }
   },
-  { timestaps: true }
+  { timestamps: true }
 );
 
-const UserModel = (mongoose.models.User) || mongoose.model('User', userSchema)
+const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
 
 export default UserModel;
