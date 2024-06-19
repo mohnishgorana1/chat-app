@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react'
 import { AiOutlineClose } from "react-icons/ai";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogTrigger,
@@ -19,6 +18,7 @@ import axios from 'axios'
 import toast from 'react-hot-toast';
 import { deleteCookie } from 'cookies-next'
 import { useRouter } from 'next/navigation'
+import { useSocket } from '@/src/context/SocketContext'
 
 
 function Dashboard() {
@@ -39,10 +39,13 @@ function Dashboard() {
   const [messageContent, setMessageContent] = useState("")
   const [messages, setMessages] = useState([])
 
+  const [socketReady, setSocketReady] = useState(false); // Add state to track socket readiness
+  const socket = useSocket();
+
 
   // get the user as components load
-  useEffect(() => {
 
+  useEffect(() => {
     // find user
     const user = localStorage.getItem("user")
     if (!user) {
@@ -53,14 +56,34 @@ function Dashboard() {
       setIsLoggedIn(true)
       setUserId(currentUser.id)
       setUser(currentUser)
-    }
-    fetchAllChats()
 
+    }
   }, [])
 
   useEffect(() => {
-    console.log(messages);
+    fetchAllChats()
+  }, [isLoggedIn])
 
+  useEffect(() => {
+    console.log("Chat Changed now socket ON");
+    
+    if (socket) {
+      socket.on('receiveMessage', (message) => {
+        if (message.chatId === currentChat?._id) {
+          setMessages((prevMessages) => [...prevMessages, message]);
+        }
+      });
+      setSocketReady(true); // Set socket readiness state to true
+    }
+    return () => {
+      if (socketReady) { // Check if socket is ready before cleaning up
+        socket.off('receiveMessage');
+      }
+    };
+  }, [router, socket, currentChat, setCurrentChat, socketReady])
+
+  useEffect(() => {
+    console.log(messages);
   }, [messages])
 
 
@@ -170,7 +193,7 @@ function Dashboard() {
   async function sendMessage(e: any, chat, messageContent: string) {
     e.preventDefault()
     console.log(chat._id, messageContent);
-    if(messageContent === ""){
+    if (messageContent === "") {
       return
     }
 
@@ -183,7 +206,7 @@ function Dashboard() {
       console.log(response);
       if (response.data.success) {
         setMessageContent("")
-        fetchAllMessages(chat) // Fetch messages again to update the chat window :: done when not using socket.io
+        // fetchAllMessages(chat) // Fetch messages again to update the chat window :: done when not using socket.io
       }
     } catch (error: any) {
       toast.error(error.message)

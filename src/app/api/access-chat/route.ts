@@ -33,10 +33,11 @@ export const POST = async (request: NextRequest) => {
         }
 
 
-
         const existingChat = await ChatModel.findOne({
             users: { $all: [requestedPersonToChat, requestingPersonForChat] }
-        }).populate('users', 'name email avatar').populate('messages')
+        })
+            .populate('users', 'name email avatar')
+            .populate('messages')
 
 
 

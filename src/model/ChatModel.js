@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
+import * as mongoose from "mongoose";
 
-const chatSchema = mongoose.Schema(
+const chatSchema = new mongoose.Schema(
   {
     users: [
       {
@@ -18,6 +18,7 @@ const chatSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-const ChatModel = mongoose.models.Chat || mongoose.model("Chat", chatSchema);
+const ChatModel = mongoose.models.Chat || mongoose.model('Chat', chatSchema);
+
 
 export default ChatModel;

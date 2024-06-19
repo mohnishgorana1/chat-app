@@ -1,4 +1,7 @@
 import mongoose from "mongoose";
+import UserModel from "../model/UserModel";
+import ChatModel from "../model/ChatModel";
+import MessageModel from "../model/MessageModel";
 
 type ConnectionObject = {
     isConnected?: number
@@ -20,6 +23,17 @@ async function dbConnect(): Promise<void> {
         console.log("DB CONNECTED SUCCESSFULLY");
         console.log("Registered Models: ", mongoose.modelNames());
         
+
+         // Register models if they are not already registered
+         if (!mongoose.models.User) {
+            mongoose.model("User", UserModel);
+        }
+        if (!mongoose.models.Chat) {
+            mongoose.model("Chat", ChatModel);
+        }
+        if (!mongoose.models.Message) {
+            mongoose.model("Message", MessageModel);
+        }
         
     }catch(error){
         console.log("Db Connection Failed", error);
