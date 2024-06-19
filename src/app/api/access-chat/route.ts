@@ -8,14 +8,19 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const POST = async (request: NextRequest) => {
     await dbConnect()
-   
+
     const { requestedPersonToChat, requestingPersonForChat } = await request.json()
     console.log(requestedPersonToChat, requestingPersonForChat);
-    
+
+
+
+
     try {
         const requestedPerson = await UserModel.findById(requestedPersonToChat);
         const requestingPerson = await UserModel.findById(requestingPersonForChat);
-        console.log(requestedPerson, requestingPerson);
+        console.log("requestedPerson", requestedPerson);
+        console.log("requestingPerson", requestingPerson);
+
 
         if (!requestedPerson || !requestingPerson) {
             return Response.json(
@@ -26,29 +31,36 @@ export const POST = async (request: NextRequest) => {
                 { status: 500 }
             )
         }
-        // console.log("Both found in db now check is accepting messages");
 
-        // check if chat Already exists
+
+
         const existingChat = await ChatModel.findOne({
             users: { $all: [requestedPersonToChat, requestingPersonForChat] }
         }).populate('users', 'name email avatar').populate('messages')
-        
+
+
+
         if (existingChat) {
             // filter logged in user
-            const otherUser = existingChat.users.filter(user => String(user._id) !== requestingPersonForChat)
+            const otherUser = existingChat.users.find(user => user._id !== requestingPersonForChat)
+            console.log("other user existing chat", otherUser);
+
+            console.log("Existing chat", existingChat);
+
+
 
             return Response.json(
                 {
                     success: true,
                     message: "Chat Already Exists",
-                    chat: {
-                        ...existingChat._doc,
-                        otherUser: otherUser[0]
-                    }
+                    chat: existingChat
                 },
                 { status: 200 }
             )
         }
+
+
+
 
         if (requestedPerson.isAcceptingMessages === false) {
             return Response.json(
@@ -59,7 +71,9 @@ export const POST = async (request: NextRequest) => {
                 { status: 500 }
             )
         }
-        // console.log("Accepting Messages");
+
+
+
 
         // console.log("Creating new Chat");
 
@@ -67,18 +81,20 @@ export const POST = async (request: NextRequest) => {
             users: [requestedPersonToChat, requestingPersonForChat],
             messages: []
         })
-        // console.log("newChat", newChat);
 
         await newChat.save()
+        const newlyCreatedChat = await ChatModel.findOne({
+            users: { $all: [requestedPersonToChat, requestingPersonForChat] }
+        }).populate('users', 'name email avatar').populate('messages')
+
+        console.log("newlyCreatedChat", newlyCreatedChat);
+
 
         return Response.json(
             {
                 success: true,
                 message: "Chat Created Successfully",
-                chat: {
-                    ...newChat._doc,
-                    otherUser: requestedPerson
-                },
+                chat: newlyCreatedChat,
                 isChatAlreadyExist: false,
             },
             { status: 200 }

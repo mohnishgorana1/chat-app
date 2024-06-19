@@ -17,7 +17,7 @@ export const POST = async (request: NextRequest) => {
             .sort({createdAt: 1})
             .exec()
 
-        console.log("messages");
+        // console.log("messages");
         
 
         return Response.json(

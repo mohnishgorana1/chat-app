@@ -1,25 +1,24 @@
-import { generateToken } from "@/src/helpers/jwt";
 import dbConnect from "../../../lib/dbConnect";
-import UserModel from "../../../model/UserModel";
-import bcryptjs from 'bcryptjs'
 import { NextRequest, NextResponse } from "next/server";
+import UserModel from "../../../model/UserModel";
 import ChatModel from "@/src/model/ChatModel";
+import MessageModel from "@/src/model/MessageModel";
 
 
 
 export const POST = async (request: NextRequest) => {
     await dbConnect()
     const { userId } = await request.json()
-    const user = await UserModel.findById(userId)
-    console.log(user);
-    
+
     try {
-        console.log("fetching chats");
+        // console.log("fetching chats");
 
         const chats = await ChatModel.find({ users: userId })
-            .populate('users', 'name email avatar ')
-        console.log("chats",chats);
-    
+            .populate('users', '-password')
+            .populate('messages')
+
+        // console.log("chats",chats);
+
 
         return Response.json(
             {

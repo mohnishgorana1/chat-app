@@ -3,16 +3,12 @@ import { Button } from '@/src/components/ui/button'
 import { ScrollArea } from '@radix-ui/react-scroll-area'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
-import { AiOutlineClose, AiOutlineCloseCircle } from "react-icons/ai";
+import { AiOutlineClose } from "react-icons/ai";
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { CiSearch } from "react-icons/ci";
@@ -22,8 +18,11 @@ import Image from 'next/image'
 import axios from 'axios'
 import toast from 'react-hot-toast';
 import { deleteCookie } from 'cookies-next'
+import { useRouter } from 'next/navigation'
+
 
 function Dashboard() {
+  const router = useRouter()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userId, setUserId] = useState(null)
   const [user, setUser] = useState(null)
@@ -34,12 +33,35 @@ function Dashboard() {
 
   const [myChats, setMyChats] = useState([])
   const [currentChat, setCurrentChat] = useState(null)
-  const [currentChatUser, setCurrentChatUser] = useState(null)
 
-  const [isChatWindowOpen, setIsChatWindowOpen] = useState(false)
+  const [isChatWindowOpen, setIsChatWindowOpen] = useState(false) // useful for mobile ui
 
   const [messageContent, setMessageContent] = useState("")
   const [messages, setMessages] = useState([])
+
+
+  // get the user as components load
+  useEffect(() => {
+
+    // find user
+    const user = localStorage.getItem("user")
+    if (!user) {
+      router.replace('/sign-in')
+    }
+    else {
+      const currentUser = JSON.parse(user)
+      setIsLoggedIn(true)
+      setUserId(currentUser.id)
+      setUser(currentUser)
+    }
+    fetchAllChats()
+
+  }, [])
+
+  useEffect(() => {
+    console.log(messages);
+
+  }, [messages])
 
 
   function handleLogout() {
@@ -63,10 +85,10 @@ function Dashboard() {
     }
     try {
       setIsSearching(true)
-      console.log("search", searchKeyword);
+      // console.log("search", searchKeyword);
 
       const response = await axios.post('/api/get-all-users', { searchKeyword, userId: userId })
-      console.log(response);
+      // console.log(response);
       if (response?.data?.success) {
         setSearchedChats(response?.data?.users)
       }
@@ -80,6 +102,52 @@ function Dashboard() {
     setIsSearching(false)
     setSearchedChats(null)
     setSearchKeyword("")
+  }
+
+  async function accessChat(user: any) {
+    // console.log(`creating chat btw  requestPerson: ${user._id}, myId: ${userId}`,);
+
+    try {
+      const response = await axios.post('/api/access-chat', {
+        requestedPersonToChat: user._id,
+        requestingPersonForChat: userId
+      })
+      console.log(response);
+
+      if (response?.data?.success) {
+        if (response.data.isChatAlreadyExist) {
+          toast.success("Chat Already Exists")
+        }
+        openChat(response.data.chat)
+        toast.success(response.data.message)
+        abortSearch()
+      }
+    } catch (error) {
+      toast.error("Can't Create Chat")
+    }
+  }
+
+  async function fetchAllChats() {
+    try {
+      const response = await axios.post('/api/fetch-chats', { userId })
+      // console.log(response);
+
+      const fetchedChats = response?.data?.chats
+      setMyChats(fetchedChats)
+      toast.success("Chats Fetched Successfully!")
+
+    } catch (error) {
+      toast.error("Error Fetching Chats!")
+    }
+  }
+
+  async function openChat(chat) {
+    console.log("curr Chat", chat);
+    setIsChatWindowOpen(true)
+
+    setCurrentChat(chat)
+
+    fetchAllMessages(chat)
   }
 
   async function fetchAllMessages(chat) {
@@ -98,62 +166,13 @@ function Dashboard() {
   }
 
 
-  async function accessChat(user: any) {
-    console.log(`creating chat btw  requestPerson: ${user._id}, myId: ${userId}`,);
-
-    try {
-      const response = await axios.post('/api/access-chat', {
-        requestedPersonToChat: user._id,
-        requestingPersonForChat: userId
-      })
-      console.log(response);
-
-      if (response?.data?.success) {
-        if (response.data.isChatAlreadyExist) {
-          toast.success("Chat Already Exists")
-        }
-        toast.success(response.data.message)
-        abortSearch()
-
-
-        openChat(response.data.chat)
-
-      }
-    } catch (error) {
-      toast.error("Can't Create Chat")
-    }
-  }
-
-  async function fetchAllChats() {
-    try {
-      const response = await axios.post('/api/fetch-chats', { userId })
-      console.log(response);
-      toast.success("Chats Fetched Successfully!")
-
-      const fetchedChats = response.data.chats
-
-      setMyChats(fetchedChats)
-      console.log(myChats);
-
-    } catch (error) {
-      toast.error("Error Fetching Chats!")
-    }
-  }
-
-
-  async function openChat(chat) {
-    console.log("curr Chat", chat);
-    setIsChatWindowOpen(true)
-
-    setCurrentChat(chat)
-
-    fetchAllMessages(chat)
-  }
-
   // send a new message and update chat window
   async function sendMessage(e: any, chat, messageContent: string) {
     e.preventDefault()
     console.log(chat._id, messageContent);
+    if(messageContent === ""){
+      return
+    }
 
     try {
       const response = await axios.post('/api/send-message', {
@@ -164,28 +183,15 @@ function Dashboard() {
       console.log(response);
       if (response.data.success) {
         setMessageContent("")
-        fetchAllMessages(chat) // Fetch messages again to update the chat window
+        fetchAllMessages(chat) // Fetch messages again to update the chat window :: done when not using socket.io
       }
-
     } catch (error: any) {
       toast.error(error.message)
     }
   }
 
 
-  useEffect(() => {
-    // find user
-    const user = localStorage.getItem("user")
-    if (user) {
-      const currentUser = JSON.parse(user)
-      setIsLoggedIn(true)
-      setUserId(currentUser.id)
-      setUser(currentUser)
-    }
 
-    // fetchAllChats()
-
-  }, [])
   return (
     <main className='w-full flex flex-col min-h-screen bg-black-3 sm:px-4 pb-5'>
       <nav className='bg-black-2 flex items-center justify-between px-10 my-2  py-3 rounded-2xl'>
@@ -235,16 +241,13 @@ function Dashboard() {
 
           )
         }
-
-
-
-
-
       </nav>
+
+
       <div className='h-[90vh] grid grid-cols-12 gap-4'>
 
         <div className='max-h-[90vh] sm:col-span-3 bg-black-1 rounded-2xl sm:px-5 sm:pt-5'>
-          {/* searchChats */}
+          {/* search box  */}
           <div className="rounded-xl w-full flex items-center justify-between border-2 border-black-4">
             <input
               type="text"
@@ -266,7 +269,7 @@ function Dashboard() {
             </span>
           </div>
 
-          {/* chatsPanel */}
+          {/* searched chats*/}
           {isSearching &&
             (
               <section className='h-[72vh] bg-black-4'>
@@ -303,7 +306,6 @@ function Dashboard() {
               myChats && (
                 myChats.map((chat) => {
                   const otherUser = chat.users.find(user => user._id.toString() !== userId)
-                  console.log(otherUser);
                   return (
                     <section
                       key={chat._id}
@@ -315,9 +317,7 @@ function Dashboard() {
                         className='rounded-full'
                       />
                       <h1 className='font-bold text-white-1'>{otherUser?.name}</h1>
-
                     </section>
-
                   )
                 })
               )
@@ -331,9 +331,7 @@ function Dashboard() {
           {/* chatWindow */}
           {
             currentChat && (() => {
-              const otherUser = currentChat.users.find(user => user._id.toString() !== userId)
-              console.log(otherUser);
-
+              const otherUser = currentChat?.users?.find(user => user?._id !== userId)
               return (
                 <div className='h-[87vh] m-1'>
                   <header className='mt-2 mx-1 rounded-xl h-[10vh] bg-black-3 flex items-center justify-between '>
@@ -346,22 +344,22 @@ function Dashboard() {
                     </Button>
                   </header>
                   <section className='mt-2 mx-1 rounded-xl bg-black-3 h-[75vh] flex flex-col'>
-                    <div className='h-[71vh] overflow-y-scroll p-4'>
+                    <div className='h-[72vh] overflow-y-scroll p-4 pb-5'>
                       {/* all messages */}
-
                       {
-                        messages.map(message => (
+                        messages.map((message, index) => (
                           <div
-                            key={message._id}
-                            className={`flex ${message.sender._id === userId ? 'justify-end' : 'justify-start'} mb-2 `}
+                            key={index}
+                            className={`flex ${message.sender?._id === userId ? 'justify-end' : 'justify-start'} my-1`}
                           >
-                            <div className={`max-w-xs p-2 rounded-lg ${message.sender._id === userId ? 'bg-blue-500 text-white' : 'bg-pink-300 text-black'}`}>
+                            <div
+                              className={`max-w-[80%] px-4 py-2 rounded-lg ${message.sender._id.toString() === userId ? 'bg-blue-800 text-white' : 'bg-pink-600 text-white-1 tracking-wider'}`}
+                            >
                               {message.content}
                             </div>
                           </div>
                         ))
                       }
-
                     </div>
                     <form className='w-full flex items-center relative' onSubmit={(e) => sendMessage(e, currentChat, messageContent)}>
                       <input type="text"

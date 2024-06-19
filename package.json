@@ -2,6 +2,7 @@
   "name": "chat-app",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -36,9 +37,6 @@
     "react-dom": "^18",
     "react-hot-toast": "^2.4.1",
     "react-icons": "^5.2.1",
-    "socket.io": "^4.7.5",
-    "socket.io-adapter": "^2.5.4",
-    "socket.io-client": "^4.7.5",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7"
   },

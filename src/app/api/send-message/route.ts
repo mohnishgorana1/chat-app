@@ -13,11 +13,11 @@ export const POST = async (request: NextRequest) => {
     await dbConnect()
 
     const { chatId, senderId, messageContent } = await request.json()
-    console.log(chatId, senderId, messageContent);
+    // console.log(chatId, senderId, messageContent);
     try {
 
         const chat = await ChatModel.findById(chatId)
-        console.log(chat);
+        // console.log(chat);
         if (!chat) {
             return Response.json(
                 {
@@ -41,7 +41,6 @@ export const POST = async (request: NextRequest) => {
         await chat.save()
 
         console.log("newMessage", newMessage);
-
 
         return Response.json(
             {

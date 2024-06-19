@@ -12,14 +12,16 @@ export const POST = async (request: NextRequest) => {
     try {
         const { searchKeyword, userId } = await request.json()
         console.log("search:: ", searchKeyword);
+        console.log("loog user id: ", userId);
         
+
         const regex = new RegExp(searchKeyword, "i")
         const users = await UserModel.findOne({
             $or: [
-                {name: regex},
-                {email: regex}
+                { name: regex },
+                { email: regex }
             ]
-        }).find({_id: {$ne: userId }}).select("-password")
+        }).find({ _id: { $ne: userId } }).select("-password")
 
         console.log("users", users);
 
