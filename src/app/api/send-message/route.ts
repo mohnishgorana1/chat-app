@@ -4,7 +4,6 @@ import MessageModel from "../../../model/MessageModel";
 import { NextRequest, NextResponse } from "next/server";
 import ChatModel from "@/src/model/ChatModel";
 
-import io from '../../../../socketServer';  // Use the correct relative path
 
 export const POST = async (request: NextRequest) => {
     await dbConnect()
@@ -33,18 +32,16 @@ export const POST = async (request: NextRequest) => {
 
         chat.messages.push(newMessage._id)
         await chat.save()
-
-
-        // Emit the new message event using socket.io
-        io.to(chatId).emit('receiveMessage', newMessage);
+        console.log("chat", chat);
         
-        console.log("newMessage", newMessage);
+
+        
+        // console.log("newMessage", newMessage);
 
         return Response.json(
             {
                 success: true,
                 message: "Message Sent Successfully",
-                latestSentMessage: newMessage,
                 chat: chat
             },
             { status: 200 }

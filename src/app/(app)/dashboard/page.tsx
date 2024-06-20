@@ -1,6 +1,5 @@
 'use client'
 import { Button } from '@/src/components/ui/button'
-import { ScrollArea } from '@radix-ui/react-scroll-area'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { AiOutlineClose } from "react-icons/ai";
@@ -18,7 +17,8 @@ import axios from 'axios'
 import toast from 'react-hot-toast';
 import { deleteCookie } from 'cookies-next'
 import { useRouter } from 'next/navigation'
-import { useSocket } from '@/src/context/SocketContext'
+import socket from '../../../lib/socket';
+
 
 
 function Dashboard() {
@@ -38,13 +38,13 @@ function Dashboard() {
 
   const [messageContent, setMessageContent] = useState("")
   const [messages, setMessages] = useState([])
+  const [currentMessage, setCurrentMessage] = useState("")
 
-  const [socketReady, setSocketReady] = useState(false); // Add state to track socket readiness
-  const socket = useSocket();
+
+
 
 
   // get the user as components load
-
   useEffect(() => {
     // find user
     const user = localStorage.getItem("user")
@@ -65,26 +65,27 @@ function Dashboard() {
   }, [isLoggedIn])
 
   useEffect(() => {
-    console.log("Chat Changed now socket ON");
-    
-    if (socket) {
-      socket.on('receiveMessage', (message) => {
-        if (message.chatId === currentChat?._id) {
-          setMessages((prevMessages) => [...prevMessages, message]);
-        }
-      });
-      setSocketReady(true); // Set socket readiness state to true
-    }
-    return () => {
-      if (socketReady) { // Check if socket is ready before cleaning up
-        socket.off('receiveMessage');
-      }
-    };
-  }, [router, socket, currentChat, setCurrentChat, socketReady])
-
-  useEffect(() => {
     console.log(messages);
-  }, [messages])
+  }, [messages, setMessages])
+
+
+
+  // socket
+  useEffect(() => {
+    socket.on('message', (msg) => {
+      console.log("received msg", msg);
+      
+      if (msg.chatId === currentChat?._id) {
+        setMessages((prevMessages) => [...prevMessages, msg]);
+      }else{
+        console.log("Message Belong to other chat");
+      }
+    });
+
+    return () => {
+      socket.off('message');
+    };
+  }, [currentChat]);
 
 
   function handleLogout() {
@@ -203,10 +204,25 @@ function Dashboard() {
         messageContent: messageContent,
         senderId: userId
       })
+
       console.log(response);
+
       if (response.data.success) {
+        // fetchAllMessages(chat)
+        
+        const newMessage = {
+          chatId: chat._id,
+          senderId: userId,
+          content: messageContent,
+          sender: { _id: userId },
+        };
+        
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
         setMessageContent("")
-        // fetchAllMessages(chat) // Fetch messages again to update the chat window :: done when not using socket.io
+        
+        console.log("sending msg", newMessage);
+        
+        socket.emit('message', newMessage)
       }
     } catch (error: any) {
       toast.error(error.message)

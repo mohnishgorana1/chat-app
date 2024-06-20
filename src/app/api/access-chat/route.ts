@@ -80,7 +80,7 @@ export const POST = async (request: NextRequest) => {
 
         const newChat = await ChatModel.create({
             users: [requestedPersonToChat, requestingPersonForChat],
-            messages: []
+            messages: [],
         })
 
         await newChat.save()
