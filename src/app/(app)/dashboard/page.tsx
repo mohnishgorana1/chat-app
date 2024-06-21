@@ -38,9 +38,8 @@ function Dashboard() {
 
   const [messageContent, setMessageContent] = useState("")
   const [messages, setMessages] = useState([])
-  const [currentMessage, setCurrentMessage] = useState("")
 
-
+  const [unreadCounts, setUnreadCounts] = useState({}) // Unread counts for each chat
   const chatContainerRef = useRef(null); // Ref for chat container
 
 
@@ -66,6 +65,16 @@ function Dashboard() {
   }, [isLoggedIn])
 
   useEffect(() => {
+    if (myChats.length > 0) {
+      const initialUnreadCounts = {};
+      myChats.forEach(chat => {
+        initialUnreadCounts[chat._id] = 0;
+      });
+      setUnreadCounts(initialUnreadCounts);
+    }
+  }, [myChats])
+
+  useEffect(() => {
     console.log(messages);
   }, [messages, setMessages])
 
@@ -84,7 +93,11 @@ function Dashboard() {
       console.log("received msg", msg);
       if (msg.chatId === currentChat?._id) {
         setMessages((prevMessages) => [...prevMessages, msg]);
-      }else{
+      } else {
+        setUnreadCounts((prevCounts) => ({
+          ...prevCounts,
+          [msg.chatId]: (prevCounts[msg.chatId] || 0) + 1
+        }));
         console.log("Message Belong to other chat");
       }
     });
@@ -163,8 +176,12 @@ function Dashboard() {
       const response = await axios.post('/api/fetch-chats', { userId })
       // console.log(response);
 
-      const fetchedChats = response?.data?.chats
-      setMyChats(fetchedChats)
+      const sortedChats = response?.data?.chats.sort((a, b) => {
+        const latestMessageA = a.messages.length > 0 ? new Date(a.messages[a.messages.length - 1].createdAt).getTime() : 0;
+        const latestMessageB = b.messages.length > 0 ? new Date(b.messages[b.messages.length - 1].createdAt).getTime() : 0;
+        return latestMessageB - latestMessageA; // Descending order
+      })
+      setMyChats(sortedChats)
       toast.success("Chats Fetched Successfully!")
 
     } catch (error) {
@@ -175,10 +192,16 @@ function Dashboard() {
   async function openChat(chat) {
     console.log("curr Chat", chat);
     setIsChatWindowOpen(true)
-
     setCurrentChat(chat)
-
     fetchAllMessages(chat)
+
+    socket.emit("joinChat", chat._id);
+
+    // Reset unread count for the chat
+    setUnreadCounts((prevCounts) => ({
+      ...prevCounts,
+      [chat._id]: 0
+    }));
   }
 
   async function fetchAllMessages(chat) {
@@ -216,19 +239,19 @@ function Dashboard() {
 
       if (response.data.success) {
         // fetchAllMessages(chat)
-        
+
         const newMessage = {
           chatId: chat._id,
           senderId: userId,
           content: messageContent,
           sender: { _id: userId },
         };
-        
+
         // setMessages((prevMessages) => [...prevMessages, newMessage]); // not using this because server broadcast to us and we already setMessages
         setMessageContent("")
-        
+
         console.log("sending msg", newMessage);
-        
+
         socket.emit('message', newMessage)
       }
     } catch (error: any) {
@@ -237,6 +260,19 @@ function Dashboard() {
   }
 
 
+
+  // helper function to0 find the index of the lastMEssage by each user
+
+  const getLastMessageIndex = (messages) => {
+    const senderLastIndex = messages.map(m => m.sender?._id).lastIndexOf(userId)
+    const receiverLastIndex = messages.map(m => m.sender?._id)
+      .lastIndexOf(currentChat?.users?.find(u => u._id !== userId)?._id);
+
+
+    return { senderLastIndex, receiverLastIndex }
+  }
+
+  const { senderLastIndex, receiverLastIndex } = getLastMessageIndex(messages);
 
   return (
     <main className='w-full flex flex-col min-h-screen bg-black-3 sm:px-4 pb-5'>
@@ -358,11 +394,21 @@ function Dashboard() {
                       className='z-20 border py-2 cursor-pointer flex mt-5 items-center justify-between sm:px-3'
                       onClick={() => openChat(chat)}
                     >
-                      <Image
-                        src={otherUser?.avatar.secure_url} alt='user' height={48} width={48}
-                        className='rounded-full'
-                      />
-                      <h1 className='font-bold text-white-1'>{otherUser?.name}</h1>
+                      <div className='flex items-center'>
+                        <Image
+                          src={otherUser?.avatar.secure_url}
+                          alt='user'
+                          height={48}
+                          width={48}
+                          className='rounded-full'
+                        />
+                        <h1 className='font-bold text-white-1 ml-4'>{otherUser?.name}</h1>
+                      </div>
+                      {unreadCounts[chat._id] > 0 && (
+                        <span className='bg-red-500 text-white-1 rounded-full px-2 py-1 text-sm'>
+                          {unreadCounts[chat._id]}
+                        </span>
+                      )}
                     </section>
                   )
                 })
@@ -390,7 +436,7 @@ function Dashboard() {
                     </Button>
                   </header>
                   <section className='mt-2 mx-1 rounded-xl bg-black-3 h-[75vh] flex flex-col'>
-                    <div className='h-[72vh] overflow-y-scroll p-4 pb-5' ref={chatContainerRef}>
+                    <div className='h-[72vh] overflow-y-scroll p-4 pb-16' ref={chatContainerRef}>
                       {/* all messages */}
                       {
                         messages.map((message, index) => (
@@ -399,7 +445,7 @@ function Dashboard() {
                             className={`flex ${message.sender?._id === userId ? 'justify-end' : 'justify-start'} my-1`}
                           >
                             <div
-                              className={`max-w-[80%] px-4 py-2 rounded-lg ${message.sender._id.toString() === userId ? 'bg-blue-800 text-white' : 'bg-pink-600 text-white-1 tracking-wider'}`}
+                              className={`max-w-[80%] mx-2 px-4 py-2 rounded-lg  text-white-1 ${message.sender._id.toString() === userId ? 'bg-blue-800 text-white' : 'bg-pink-600 tracking-wider'}`}
                             >
                               {message.content}
                             </div>
