@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/src/components/ui/button'
 import Link from 'next/link'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { AiOutlineClose } from "react-icons/ai";
 import {
   AlertDialog,
@@ -41,6 +41,8 @@ function Dashboard() {
   const [currentMessage, setCurrentMessage] = useState("")
 
 
+  const chatContainerRef = useRef(null)   // Ref for chat container
+  
 
 
 
@@ -56,7 +58,6 @@ function Dashboard() {
       setIsLoggedIn(true)
       setUserId(currentUser.id)
       setUser(currentUser)
-
     }
   }, [])
 
@@ -67,6 +68,12 @@ function Dashboard() {
   useEffect(() => {
     console.log(messages);
   }, [messages, setMessages])
+
+  useEffect(() => {
+    if(chatContainerRef.current){
+      chatContainerRef.current.scrollTop  = chatContainerRef.current.scrollHeight
+    }
+  },[messages])
 
 
 
@@ -172,6 +179,8 @@ function Dashboard() {
     setCurrentChat(chat)
 
     fetchAllMessages(chat)
+
+    socket.emit("joinChat", chat._id)
   }
 
   async function fetchAllMessages(chat) {
@@ -383,7 +392,7 @@ function Dashboard() {
                     </Button>
                   </header>
                   <section className='mt-2 mx-1 rounded-xl bg-black-3 h-[75vh] flex flex-col'>
-                    <div className='h-[72vh] overflow-y-scroll p-4 pb-5'>
+                    <div className='h-[72vh] overflow-y-scroll p-4 pb-16' ref={chatContainerRef}>
                       {/* all messages */}
                       {
                         messages.map((message, index) => (
