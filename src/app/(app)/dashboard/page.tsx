@@ -41,8 +41,7 @@ function Dashboard() {
   const [currentMessage, setCurrentMessage] = useState("")
 
 
-  const chatContainerRef = useRef(null)   // Ref for chat container
-  
+  const chatContainerRef = useRef(null); // Ref for chat container
 
 
 
@@ -58,6 +57,7 @@ function Dashboard() {
       setIsLoggedIn(true)
       setUserId(currentUser.id)
       setUser(currentUser)
+
     }
   }, [])
 
@@ -69,19 +69,19 @@ function Dashboard() {
     console.log(messages);
   }, [messages, setMessages])
 
-  useEffect(() => {
-    if(chatContainerRef.current){
-      chatContainerRef.current.scrollTop  = chatContainerRef.current.scrollHeight
-    }
-  },[messages])
 
+  useEffect(() => {
+    // Scroll to bottom when messages update
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
 
   // socket
   useEffect(() => {
     socket.on('message', (msg) => {
       console.log("received msg", msg);
-      
       if (msg.chatId === currentChat?._id) {
         setMessages((prevMessages) => [...prevMessages, msg]);
       }else{
@@ -179,8 +179,6 @@ function Dashboard() {
     setCurrentChat(chat)
 
     fetchAllMessages(chat)
-
-    socket.emit("joinChat", chat._id)
   }
 
   async function fetchAllMessages(chat) {
@@ -226,7 +224,7 @@ function Dashboard() {
           sender: { _id: userId },
         };
         
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
+        // setMessages((prevMessages) => [...prevMessages, newMessage]); // not using this because server broadcast to us and we already setMessages
         setMessageContent("")
         
         console.log("sending msg", newMessage);
@@ -392,7 +390,7 @@ function Dashboard() {
                     </Button>
                   </header>
                   <section className='mt-2 mx-1 rounded-xl bg-black-3 h-[75vh] flex flex-col'>
-                    <div className='h-[72vh] overflow-y-scroll p-4 pb-16' ref={chatContainerRef}>
+                    <div className='h-[72vh] overflow-y-scroll p-4 pb-5' ref={chatContainerRef}>
                       {/* all messages */}
                       {
                         messages.map((message, index) => (
