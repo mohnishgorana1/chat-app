@@ -9,15 +9,26 @@ import {
   AlertDialogContent,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
 import { CiSearch } from "react-icons/ci";
-import { FaEllipsisVertical } from "react-icons/fa6";
-import { IoMdSend } from "react-icons/io";
+import { FaBackward, FaEllipsisVertical } from "react-icons/fa6";
+import { IoMdArrowBack, IoMdBackspace, IoMdMenu, IoMdSend } from "react-icons/io";
 import Image from 'next/image'
 import axios from 'axios'
 import toast from 'react-hot-toast';
 import { deleteCookie } from 'cookies-next'
 import { useRouter } from 'next/navigation'
 import socket from '../../../lib/socket';
+import { MenuIcon } from 'lucide-react';
+
 
 
 
@@ -31,17 +42,17 @@ function Dashboard() {
   const [searchedChats, setSearchedChats] = useState(null)
   const [searchKeyword, setSearchKeyword] = useState("")
 
+
   const [myChats, setMyChats] = useState([])
   const [currentChat, setCurrentChat] = useState(null)
 
-  const [isChatWindowOpen, setIsChatWindowOpen] = useState(false) // useful for mobile ui
+  const [isChatWindowOpen, setIsChatWindowOpen] = useState(false)
+  const [isMobileScreen, setIsMobileScreen] = useState(false)
 
   const [messageContent, setMessageContent] = useState("")
   const [messages, setMessages] = useState([])
-
   const [unreadCounts, setUnreadCounts] = useState({}) // Unread counts for each chat
   const chatContainerRef = useRef(null); // Ref for chat container
-
 
 
   // get the user as components load
@@ -102,10 +113,13 @@ function Dashboard() {
       }
     });
 
+
+
     return () => {
       socket.off('message');
     };
   }, [currentChat]);
+
 
 
   function handleLogout() {
@@ -190,8 +204,10 @@ function Dashboard() {
   }
 
   async function openChat(chat) {
-    console.log("curr Chat", chat);
+
     setIsChatWindowOpen(true)
+
+    console.log("curr Chat", chat);
     setCurrentChat(chat)
     fetchAllMessages(chat)
 
@@ -202,6 +218,11 @@ function Dashboard() {
       ...prevCounts,
       [chat._id]: 0
     }));
+  }
+
+  async function closeChat() {
+    setIsChatWindowOpen(false)
+    setCurrentChat(null)
   }
 
   async function fetchAllMessages(chat) {
@@ -259,10 +280,7 @@ function Dashboard() {
     }
   }
 
-
-
   // helper function to0 find the index of the lastMEssage by each user
-
   const getLastMessageIndex = (messages) => {
     const senderLastIndex = messages.map(m => m.sender?._id).lastIndexOf(userId)
     const receiverLastIndex = messages.map(m => m.sender?._id)
@@ -271,66 +289,56 @@ function Dashboard() {
 
     return { senderLastIndex, receiverLastIndex }
   }
-
   const { senderLastIndex, receiverLastIndex } = getLastMessageIndex(messages);
 
+
+
   return (
-    <main className='w-full flex flex-col min-h-screen bg-black-3 sm:px-4 pb-5'>
-      <nav className='bg-black-2 flex items-center justify-between px-10 my-2  py-3 rounded-2xl'>
+    <main className={`w-full flex flex-col bg-black-3 sm:px-4 gap-y-3`}>
+
+      <nav className={`sm:h-[10vh] h-[6vh] bg-black-2 flex items-center justify-between px-10 mt-2 pt-1 rounded-2xl`}>
         <Link href={'/'} className='text-pink-600 text-xl sm:text-3xl font-extralight tracking-wider'>QuickChat</Link>
-        {
-          !isLoggedIn ? (
-            <Link href={'/sign-in'}>
-              <Button className='bg-pink-600 hover:bg-pink-700 font-extrabold px-8 py-2 rounded-lg text-white-1'>Login</Button>
-            </Link>
-          ) : (
-            <div className='flex items-center justify-center gap-3'>
-              <div className='bg-pink-600 hover:bg-pink-700 font-extrabold px-8 py-2 rounded-lg text-white-1'>
-                <AlertDialog>
-                  <AlertDialogTrigger>Profile</AlertDialogTrigger>
-                  <div className='relative'>
-                    <AlertDialogContent className='bg-white-1 '>
-                      <div>
-                        <AlertDialogCancel className='p-0 bg-black-6 text-white-1 hover:bg-black-3 border-2 absolute top-1 right-2'>
-                          <Button className='font-bold'>Close</Button>
-                        </AlertDialogCancel>
-                      </div>
-                      <div className='w-full flex flex-col items-center justify-center gap-8'>
-                        <h1 className='font-bold text-xl sm:text-3xl'>Profile</h1>
-                        {user && (
-                          <section className='flex flex-col gap-4'>
-                            <Image src={user?.avatar.secure_url} width={150} height={150} alt='avatar' className='rounded-full self-center' />
-                            <span className='flex items-center gap-5'>
-                              <p className='font-bold'>Name: </p>
-                              <p>{user?.name}</p>
-                            </span>
-                            <span className='flex items-center gap-5'>
-                              <p className='font-bold'>Email: </p>
-                              <p>{user?.email}</p>
-                            </span>
-                          </section>
-                        )
-                        }
-                      </div>
-                    </AlertDialogContent>
+        <span className="relative">
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <IoMdMenu className='text-white-1 text-3xl sm:text-5xl' />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className='bg-black-3 text-white-1 absolute top-2 -right-6 w-[15vw]'>
+              <Link href={'/profile'}>
+                <DropdownMenuLabel className='sm:text-2xl py-2 sm:py-3 '>My Account</DropdownMenuLabel>
+              </Link>
+              <DropdownMenuSeparator className='border-2 ' />
+              {
+                isLoggedIn ? (
+                  <div className='my-5 flex flex-col '>
+                    <DropdownMenuItem className='sm:text-lg text-base hover:bg-white-2 hover:text-black-3 ' onClick={handleLogout}>Logout</DropdownMenuItem>
+                    <DropdownMenuSeparator className='border border-black-2' />
+                    <DropdownMenuItem className='sm:text-lg text-base hover:bg-white-2 hover:text-black-3 ' onClick={fetchAllChats}>Fetch Chats</DropdownMenuItem>
                   </div>
+                ) : (
+                  <div className="my-5 flex flex-col">
+                    <Link href={'/sign-up'}>
+                      <DropdownMenuItem className='sm:text-lg text-base hover:bg-white-2 hover:text-black-3 '>Sign Up</DropdownMenuItem>
+                    </Link>
+                    <DropdownMenuSeparator className='border border-black-2' />
+                    <Link href={'/sign-in'}>
+                      <DropdownMenuItem className='sm:text-lg text-base hover:bg-white-2 hover:text-black-3 '>Sign In</DropdownMenuItem>
+                    </Link>
+                  </div>
+                )
+              }
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-                </AlertDialog>
-              </div>
-              <Button className='bg-black-3 border-2 border-black-3 hover:border-white-1 font-extrabold px-7 py-2 rounded-lg text-white-1' onClick={handleLogout}>Logout</Button>
-              <button className='p-2 border-2 bg-transparent text-blue-600 border-blue-600' onClick={fetchAllChats}>FetchChats</button>
-            </div>
+        </span>
+      </nav >
 
-          )
-        }
-      </nav>
+      <div className='w-full h-[90vh] flex sm:gap-4'>
 
-
-      <div className='h-[90vh] grid grid-cols-12 gap-4'>
-
-        <div className='max-h-[90vh] sm:col-span-3 bg-black-1 rounded-2xl sm:px-5 sm:pt-5'>
+        {/* sidebar */}
+        <div className={`${isChatWindowOpen ? "hidden sm:block sm:w-[25%]" : "w-full sm:w-[25%]"} max-h-[90vh] bg-black-1 rounded-2xl px-2 sm:px-5 sm:pt-5`}>
           {/* search box  */}
-          <div className="rounded-xl w-full flex items-center justify-between border-2 border-black-4">
+          <div className={`rounded-xl w-full flex items-center justify-between border-2 border-black-4`}>
             <input
               type="text"
               placeholder='Search User'
@@ -360,7 +368,7 @@ function Dashboard() {
                     searchedChats.map((user) => (
                       <div
                         key={user._id}
-                        className='border border-x-0 border-y-black-3 py-2 flex mt-5 items-center sm:px-3 '
+                        className='border border-x-0 border-y-black-3 py-2 flex gap-x-2 mt-5 items-center px-3'
                       >
                         <Image
                           src={user.avatar.secure_url} alt='user' height={28} width={48}
@@ -369,7 +377,7 @@ function Dashboard() {
                         <span className='w-full flex items-center justify-between'>
                           <h1 className='ml-2 font-bold text-white-1'>{user.name}</h1>
                           <span
-                            className='bg-blue-300 rounded-xl text-sm px-2 py-1 cursor-pointer hover:scale-105 duration-200 ease-in font-bold'
+                            className='bg-pink-600 text-white-1 rounded-xl text-sm px-2 py-1 cursor-pointer hover:scale-105 duration-200 ease-in font-bold'
                             onClick={(e) => accessChat(user)}
                           >Chat
                           </span>
@@ -385,13 +393,13 @@ function Dashboard() {
           {/* all fetched chats  */}
           <div className='sm:px-3 mt-5 '>
             {
-              myChats && (
+              myChats  && (
                 myChats.map((chat) => {
                   const otherUser = chat.users.find(user => user._id.toString() !== userId)
                   return (
                     <section
                       key={chat._id}
-                      className='z-20 border py-2 cursor-pointer flex mt-5 items-center justify-between sm:px-3'
+                      className={`${isSearching ? "hidden" : "block"} z-20 border py-2 cursor-pointer flex mt-5 items-center justify-between sm:px-3`}
                       onClick={() => openChat(chat)}
                     >
                       <div className='flex items-center'>
@@ -418,21 +426,31 @@ function Dashboard() {
 
 
         </div>
-
-        <section className='max-h-[90vh] sm:col-span-9 bg-black-1 rounded-2xl'>
+        {/* chatwindow */}
+        <section className={`${isChatWindowOpen ? "w-full sm:w-[75%]" : "hidden sm:w-[75%]"} max-h-[90vh] bg-black-1 rounded-2xl`}>
           {/* chatWindow */}
           {
             currentChat && (() => {
               const otherUser = currentChat?.users?.find(user => user?._id !== userId)
               return (
                 <div className='h-[87vh] m-1'>
-                  <header className='mt-2 mx-1 rounded-xl h-[10vh] bg-black-3 flex items-center justify-between '>
-                    <span className='ml-2 sm:ml-4 flex items-center gap-3'>
-                      <Image src={otherUser.avatar.secure_url} width={52} height={52} alt='avatar' className='rounded-full' />
+                  <header className='mt-2 mx-1 rounded-xl h-[10vh] bg-black-3 flex items-center justify-between'>
+                    <span className='sm:ml-4 flex items-center sm:gap-4'>
+                      <button className='bg-black-2 h-[6vh] sm:h-[8vh]   ml-2 mr-4 px-2 sm:px-5 rounded-full hover:bg-black-5'
+                        onClick={closeChat}
+                      >
+                        <IoMdArrowBack className='text-white-1 sm:text-3xl' />
+                      </button>
+                      <span className='hidden sm:block'>
+                        <Image src={otherUser.avatar.secure_url} width={52} height={52} alt='avatar' className='rounded-full' />
+                      </span>
+                      <span className='sm:hidden'>
+                        <Image src={otherUser.avatar.secure_url} width={36} height={36} alt='avatar' className='rounded-full' />
+                      </span>
                       <h1 className='sm:pl-5 pl-3  text-white-1 font-extrabold text-xl sm:text-3xl'>{otherUser.name}</h1>
                     </span>
-                    <Button className='border w-12 mr-5' >
-                      <FaEllipsisVertical className='text-white-1 font-bold text-xl' />
+                    <Button className="w-10 sm:w-12 mr-5">
+                      <FaEllipsisVertical className='text-white-1 font-bold  sm:text-xl' />
                     </Button>
                   </header>
                   <section className='mt-2 mx-1 rounded-xl bg-black-3 h-[75vh] flex flex-col'>
@@ -442,10 +460,10 @@ function Dashboard() {
                         messages.map((message, index) => (
                           <div
                             key={index}
-                            className={`flex ${message.sender?._id === userId ? 'justify-end' : 'justify-start'} my-1`}
+                            className={`flex ${message.sender?._id === userId ? 'justify-end' : 'justify-start'} mt-2`}
                           >
                             <div
-                              className={`max-w-[80%] mx-2 px-4 py-2 rounded-lg  text-white-1 ${message.sender._id.toString() === userId ? 'bg-blue-800 text-white' : 'bg-pink-600 tracking-wider'}`}
+                              className={`max-w-[80%] mx-2 sm:px-4 sm:py-2 px-2 py-1 text-sm sm:text-lg  rounded-lg  text-white-1 ${message.sender._id.toString() === userId ? 'bg-blue-800 text-white' : 'bg-pink-600 tracking-wider'}`}
                             >
                               {message.content}
                             </div>
