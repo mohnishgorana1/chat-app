@@ -4,12 +4,6 @@ import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { AiOutlineClose } from "react-icons/ai";
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -17,18 +11,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
 import { CiSearch } from "react-icons/ci";
-import { FaBackward, FaEllipsisVertical } from "react-icons/fa6";
-import { IoMdArrowBack, IoMdBackspace, IoMdMenu, IoMdSend } from "react-icons/io";
+import { FaEllipsisVertical } from "react-icons/fa6";
+import { IoMdArrowBack, IoMdMenu, IoMdSend } from "react-icons/io";
 import Image from 'next/image'
 import axios from 'axios'
 import toast from 'react-hot-toast';
 import { deleteCookie } from 'cookies-next'
 import { useRouter } from 'next/navigation'
-import socket from '../../../lib/socket';
-import { MenuIcon } from 'lucide-react';
-
+// import socket from '../../../lib/socket';
+import Pusher from 'pusher-js';
+import { pusherConfig } from '@/src/config/pusherConfig';
 
 
 
@@ -72,7 +65,9 @@ function Dashboard() {
   }, [])
 
   useEffect(() => {
-    fetchAllChats()
+    if (isLoggedIn) {
+      fetchAllChats(); // Ensure myChats gets populated
+    }
   }, [isLoggedIn])
 
   useEffect(() => {
@@ -99,27 +94,55 @@ function Dashboard() {
 
 
   // socket
+  // useEffect(() => {
+  //   socket.on('message', (msg) => {
+  //     console.log("received msg", msg);
+  //     if (msg.chatId === currentChat?._id) {
+  //       setMessages((prevMessages) => [...prevMessages, msg]);
+  //     } else {
+  //       setUnreadCounts((prevCounts) => ({
+  //         ...prevCounts,
+  //         [msg.chatId]: (prevCounts[msg.chatId] || 0) + 1
+  //       }));
+  //       console.log("Message Belong to other chat");
+  //     }
+  //   });
+  //   return () => {
+  //     socket.off('message');
+  //   };
+  // }, [currentChat]);
+
+
+  // pusher
   useEffect(() => {
-    socket.on('message', (msg) => {
-      console.log("received msg", msg);
-      if (msg.chatId === currentChat?._id) {
-        setMessages((prevMessages) => [...prevMessages, msg]);
-      } else {
-        setUnreadCounts((prevCounts) => ({
-          ...prevCounts,
-          [msg.chatId]: (prevCounts[msg.chatId] || 0) + 1
-        }));
-        console.log("Message Belong to other chat");
-      }
+
+    const pusher = new Pusher(pusherConfig.NEXT_PUBLIC_PUSHER_KEY, {
+      cluster: 'ap2'
+    });
+    console.log("pusher", pusher);
+
+    // Subscribe to channels for all chats
+    myChats.forEach(chat => {
+      const channel = pusher.subscribe(`chat-${chat._id}`);
+      channel.bind('message', (msg) => {
+        if (msg.chatId === chat._id) {
+          setMessages(prevMessages => [...prevMessages, msg]);
+          if (chat._id !== currentChat?._id) {
+            setUnreadCounts(prevCounts => ({
+              ...prevCounts,
+              [chat._id]: (prevCounts[chat._id] || 0) + 1,
+            }));
+          }
+        }
+      });
     });
 
-
-
+    // Clean up
     return () => {
-      socket.off('message');
+      pusher.disconnect();
     };
-  }, [currentChat]);
 
+  }, [currentChat]);
 
 
   function handleLogout() {
@@ -207,11 +230,11 @@ function Dashboard() {
 
     setIsChatWindowOpen(true)
 
-    console.log("curr Chat", chat);
+    // console.log("curr Chat", chat);
     setCurrentChat(chat)
     fetchAllMessages(chat)
 
-    socket.emit("joinChat", chat._id);
+    // socket.emit("joinChat", chat._id);
 
     // Reset unread count for the chat
     setUnreadCounts((prevCounts) => ({
@@ -226,8 +249,8 @@ function Dashboard() {
   }
 
   async function fetchAllMessages(chat) {
-    console.log("now fetch messages");
-    console.log(chat);
+    // console.log("now fetch messages");
+    // console.log(chat);
     try {
       const response = await axios.post('/api/fetch-messages', { chatId: chat._id })
       console.log(response);
@@ -256,11 +279,7 @@ function Dashboard() {
         senderId: userId
       })
 
-      console.log(response);
-
       if (response.data.success) {
-        // fetchAllMessages(chat)
-
         const newMessage = {
           chatId: chat._id,
           senderId: userId,
@@ -273,7 +292,7 @@ function Dashboard() {
 
         console.log("sending msg", newMessage);
 
-        socket.emit('message', newMessage)
+        // socket.emit('message', newMessage)
       }
     } catch (error: any) {
       toast.error(error.message)
@@ -393,7 +412,7 @@ function Dashboard() {
           {/* all fetched chats  */}
           <div className='sm:px-3 mt-5 '>
             {
-              myChats  && (
+              myChats && (
                 myChats.map((chat) => {
                   const otherUser = chat.users.find(user => user._id.toString() !== userId)
                   return (

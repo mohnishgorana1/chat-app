@@ -3,7 +3,7 @@ import MessageModel from "../../../model/MessageModel";
 
 import { NextRequest, NextResponse } from "next/server";
 import ChatModel from "@/src/model/ChatModel";
-
+import pusher from '@/src/lib/pusher'
 
 export const POST = async (request: NextRequest) => {
     await dbConnect()
@@ -32,10 +32,18 @@ export const POST = async (request: NextRequest) => {
 
         chat.messages.push(newMessage._id)
         await chat.save()
-        console.log("chat", chat);
+        // console.log("chat", chat);
+
+        const pusherResponse = await pusher.trigger(`chat-${chatId}`, 'message', {
+            chatId,
+            senderId,
+            content: messageContent,
+            sender: { _id: senderId },
+        });
+        console.log("pusherResponse:: ", pusherResponse);
         
 
-        
+
         // console.log("newMessage", newMessage);
 
         return Response.json(
