@@ -221,7 +221,9 @@ function Dashboard() {
         return latestMessageB - latestMessageA; // Descending order
       })
       setMyChats(sortedChats)
-      toast.success("Chats Fetched Successfully!")
+      // toast.success("Chats Fetched Successfully!")
+      setCurrentChat(null)
+      setIsChatWindowOpen(false)
 
     } catch (error) {
       toast.error("Error Fetching Chats!")
@@ -319,7 +321,17 @@ function Dashboard() {
 
       <nav className={`sm:h-[10vh] h-[6vh] bg-black-2 flex items-center justify-between px-10 mt-2 pt-1 rounded-2xl`}>
         <Link href={'/'} className='text-pink-600 text-xl sm:text-3xl font-extralight tracking-wider'>QuickChat</Link>
-        <span className="relative">
+        <span className="relative flex items-center sm:gap-5">
+          <button
+            className='hidden sm:block text-base sm:text-xl text-blue-600  underline '
+            onClick={fetchAllChats}
+          >Refresh Chats
+          </button>
+          <button
+            className='block sm:hidden text-base sm:text-xl text-blue-600  underline mb-1 mr-2'
+            onClick={fetchAllChats}
+          >Chats
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger>
               <IoMdMenu className='text-white-1 text-3xl sm:text-5xl' />
@@ -334,7 +346,7 @@ function Dashboard() {
                   <div className='my-5 flex flex-col '>
                     <DropdownMenuItem className='sm:text-lg text-base hover:bg-white-2 hover:text-black-3 ' onClick={handleLogout}>Logout</DropdownMenuItem>
                     <DropdownMenuSeparator className='border border-black-2' />
-                    <DropdownMenuItem className='sm:text-lg text-base hover:bg-white-2 hover:text-black-3 ' onClick={fetchAllChats}>Fetch Chats</DropdownMenuItem>
+                    {/* <DropdownMenuItem className='sm:text-lg text-base hover:bg-white-2 hover:text-black-3 ' onClick={fetchAllChats}>Fetch Chats</DropdownMenuItem> */}
                   </div>
                 ) : (
                   <div className="my-5 flex flex-col">
