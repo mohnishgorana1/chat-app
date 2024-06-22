@@ -16,72 +16,44 @@ v2.config({
 export const POST = async (request: NextRequest) => {
   await dbConnect()
 
-  try {
-    const formData = await request.formData()
-    // get all data  
-    console.log(formData);
-    
-    const avatar = formData.get('avatar')
-    const name = formData.get('name')
-    const email = formData.get('email')
-    const password = formData.get('password')
+  const formData = await request.formData()
+  // get all data  
+  console.log(formData);
 
-    // validation check
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Registration Form Data Not Found"
-        },
-        { status: 404 }
-      )
-    }
-    if (!avatar) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Avatar File not found from request"
-        },
-        { status: 404 }
-      )
-    }
+  const avatar = formData.get('avatar')
+  const name = formData.get('name')
+  const email = formData.get('email')
+  const password = formData.get('password')
 
-    console.log(name, email, password);
-    console.log("file", avatar);
-    console.log(typeof (email), typeof (name), typeof (password), typeof (avatar));
-    
+  // validation check
+  if (!name || !email || !password) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Registration Form Data Not Found"
+      },
+      { status: 404 }
+    )
+  }
+  if (!avatar) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Avatar File not found from request"
+      },
+      { status: 404 }
+    )
+  }
 
+  console.log(name, email, password);
+  console.log("file", avatar);
+  console.log(typeof (email), typeof (name), typeof (password), typeof (avatar));
 
-    // now file exists: not using multer instead doing manually and saving 
-    const buffer = await avatar.arrayBuffer();
-    const tempFilePath = `./uploads/${avatar.name}`;
-    await writeFile(tempFilePath, Buffer.from(buffer));
-
-    // const byteData = await avatar.arrayBuffer()
-    // const buffer = Buffer.from(byteData)
-    // const path = `./uploads/${avatar.name}`
-    // await writeFile(path, buffer)
-
-
-    // using multer
-    // try {
-    //   upload.single('avatar')
-    // } catch (error) {
-    //   return NextResponse.json(
-    //     {
-    //       success: false,
-    //       message: "Multer Error!"
-    //     },
-    //     { status: 500 }
-    //   )
-    // }
-
-
-
+  try {    
     const userExists = await UserModel.findOne({ email })
     if (userExists) {
       console.log("user Exists", userExists);
-
+      
       return Response.json(
         {
           success: false,
@@ -90,10 +62,10 @@ export const POST = async (request: NextRequest) => {
         { status: 500 }
       )
     }
-
+    
     // create a new user 
     console.log("Creating new User");
-
+    
     const user = await UserModel.create({
       name,
       email,
@@ -104,9 +76,17 @@ export const POST = async (request: NextRequest) => {
       },
       isAcceptingMessages: true
     })
-
+    await user.save()
+    console.log("user created success now file upload");
+    
     try {
-      console.log("uploading to cloudinary");
+      // now file exists: not using multer instead doing manually and saving 
+      const buffer = await avatar.arrayBuffer();
+      const tempFilePath = `./uploads/${avatar.name}`;
+      await writeFile(tempFilePath, Buffer.from(buffer));
+
+      console.log("file uploaded to server at upload folder");
+      console.log("now uploading to cloudinary");
 
       const result = await cloudinary.v2.uploader.upload(tempFilePath, {
         folder: "quickchat",
@@ -125,8 +105,10 @@ export const POST = async (request: NextRequest) => {
         // avatar uploaded and saved to user.avatar now let save the password
         const hashedPassword = await bcryptjs.hash(password as string, 10)
         user.password = hashedPassword
-        await user.save();
+
+        console.log("all Good now saving user to DB are successfull creation of account");
         
+        await user.save();
 
 
         // remove file from local system
@@ -142,6 +124,8 @@ export const POST = async (request: NextRequest) => {
       )
     }
 
+    console.log("Account Created Successfully");
+    
     return Response.json(
       {
         success: true,
