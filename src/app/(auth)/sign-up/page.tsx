@@ -55,11 +55,15 @@ function SignUpPage() {
 
     const response = await axios.post('/api/sign-up', formData)
     if(response?.data?.success === true){
+      setIsSubmitting(false)
       console.log("response", response);
       toast.success("Account Created")
       router.replace('/sign-in')
+    }else{
+      toast.success("Error Sign-Up")
+      console.log(response);
+      
     }
-    setIsSubmitting(false)
 
   };
 

@@ -126,7 +126,7 @@ export const POST = async (request: NextRequest) => {
         const hashedPassword = await bcryptjs.hash(password as string, 10)
         user.password = hashedPassword
         await user.save();
-
+        
 
 
         // remove file from local system
