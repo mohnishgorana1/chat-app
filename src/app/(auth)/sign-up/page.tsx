@@ -11,33 +11,35 @@ import { Loader } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
+
 function SignUpPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
   const [email, setEmail] = useState("")
-  const [avatar, setAvatar] = useState("")
+  const [gender, setGender] = useState("")
+  // const [avatar, setAvatar] = useState("")
   const router = useRouter()
 
-  const [previewImage, setPreviewImage] = useState("")
+  // const [previewImage, setPreviewImage] = useState("")
 
-  const handleImage = (e: any) => {
-    e.preventDefault()
-    const uploadedImage = e.target.files[0];
+  // const handleImage = (e: any) => {
+  //   e.preventDefault()
+  //   const uploadedImage = e.target.files[0];
 
-    if (uploadedImage) {
-      setAvatar(uploadedImage)
-      const fileReader = new FileReader();
-      fileReader.readAsDataURL(uploadedImage);
-      fileReader.addEventListener("load", function () {
-        console.log(this.result);
-        const result = this.result as string
-        setPreviewImage(result);
-      });
-    }
-    console.log(uploadedImage);
+  //   if (uploadedImage) {
+  //     setAvatar(uploadedImage)
+  //     const fileReader = new FileReader();
+  //     fileReader.readAsDataURL(uploadedImage);
+  //     fileReader.addEventListener("load", function () {
+  //       console.log(this.result);
+  //       const result = this.result as string
+  //       setPreviewImage(result);
+  //     });
+  //   }
+  //   console.log(uploadedImage);
 
-  }
+  // }
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -46,7 +48,8 @@ function SignUpPage() {
     formData.append('name', name)
     formData.append('email', email)
     formData.append('password', password)
-    formData.append('avatar', avatar)
+    formData.append('gender', gender)
+    // formData.append('avatar', avatar)
 
     const formDataEntries = Array.from(formData.entries());
     for (const pair of formDataEntries) {
@@ -54,18 +57,18 @@ function SignUpPage() {
     }
 
     const response = await axios.post('/api/sign-up', formData)
-    if(response?.data?.success === true){
+
+    if (response?.data?.success === true) {
       setIsSubmitting(false)
       console.log("response", response);
       toast.success("Account Created")
       router.replace('/sign-in')
-    }else{
+    } else {
       toast.success("Error Sign-Up")
       console.log(response);
-      
     }
 
-  };
+  }
 
   // bg-dot-white-1/[0.1] relative
   return (
@@ -87,7 +90,7 @@ function SignUpPage() {
         </header>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-5">
 
-          <div className={`self-center border border-white-2 border-opacity-10 p-2 rounded-full`}>
+          {/* <div className={`self-center border border-white-2 border-opacity-10 p-2 rounded-full`}>
             <label htmlFor="avatar" className="cursor-pointer">
               {previewImage ? (
                 <Image
@@ -111,7 +114,7 @@ function SignUpPage() {
               accept=".jpg, .jpeg, .png, .svg"
               onChange={handleImage}
             />
-          </div>
+          </div> */}
 
           <div className="text-sm sm:text-lg w-full flex justify-evenly sm:gap-8 items-center">
             <label htmlFor="name" className="text-white-1 w-[20%]">
@@ -155,7 +158,31 @@ function SignUpPage() {
             />
           </div>
 
-
+          <div className="text-white-1 text-sm sm:text-lg w-full flex justify-evenly sm:gap-8 items-center">
+            <label className="w-[20%]">Gender:</label>
+            <div className="w-[60%] flex items-center gap-5">
+              <label>
+                <input
+                  type="radio"
+                  value="male"
+                  checked={gender === 'male'}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="mx-1"
+                />
+                Male
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  value="female"
+                  checked={gender === 'female'}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="mx-1"
+                />
+                Female
+              </label>
+            </div>
+          </div>
 
           <Button
             className="self-center sm:self-auto text-white-1 py-1 sm:py-2 mt-5 bg-pink-700 duration-500 hover:bg-pink-600 hover:border-none 
@@ -167,7 +194,7 @@ function SignUpPage() {
                 </>
               ) : (
                 <>
-                  Submitting <Loader className="animate-spin"/>
+                  Submitting <Loader className="animate-spin" />
                 </>
               )
             }
@@ -179,8 +206,8 @@ function SignUpPage() {
             Please Login
           </Link>
         </span>
-      </div>
-    </main>
+      </div >
+    </main >
   );
 }
 

@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // api: {
+  //   bodyParser: false, // Disallow body parsing, to consume as stream
+  // },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -15,14 +18,6 @@ const nextConfig = {
       // },
     ],
   },
-  // async rewrites() {
-  //   return [
-  //     {
-  //       source: "/api/socket",
-  //       destination: "/api/socket",
-  //     },
-  //   ];
-  // },
 };
 
 export default nextConfig;
