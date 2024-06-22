@@ -158,6 +158,8 @@ function Dashboard() {
     setIsLoggedIn(false)
 
     toast.success("Logout Success")
+
+    router.replace('/')
   }
 
   async function getAllUsers(searchKeyword: string, userId: string) {
