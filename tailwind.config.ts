@@ -55,7 +55,8 @@ const config = {
 
       animation: {
         spotlight: "spotlight 2s ease .75s 1 forwards",
-        'border-spin': 'border-spin 7s linear infinite'
+        'border-spin': 'border-spin 7s linear infinite',
+        "meteor-effect": "meteor 5s linear infinite",
       },
       keyframes: {
         spotlight: {
@@ -72,7 +73,15 @@ const config = {
           '100%': {
             transform: 'rotate(-360deg)'
           }
-        }
+        }, 
+        meteor: {
+          "0%": { transform: "rotate(215deg) translateX(0)", opacity: "1" },
+          "70%": { opacity: "1" },
+          "100%": {
+            transform: "rotate(215deg) translateX(-500px)",
+            opacity: "0",
+          },
+        },
       },
     },
   },

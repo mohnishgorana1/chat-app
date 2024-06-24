@@ -68,7 +68,7 @@ function Dashboard() {
     if (isLoggedIn) {
       fetchAllChats(); // Ensure myChats gets populated
     }
-  }, [isLoggedIn])
+  }, [isLoggedIn, user])
 
   useEffect(() => {
     if (myChats.length > 0) {
@@ -317,7 +317,7 @@ function Dashboard() {
 
 
   return (
-    <main className={`w-full flex flex-col bg-black-3 sm:px-4 gap-y-3`}>
+    <main className={`w-full flex flex-col min-h-screen bg-black-3 sm:px-4 gap-y-3`}>
 
       <nav className={`sm:h-[10vh] h-[6vh] bg-black-2 flex items-center justify-between px-10 mt-2 pt-1 rounded-2xl`}>
         <Link href={'/'} className='text-pink-600 text-xl sm:text-3xl font-extralight tracking-wider'>QuickChat</Link>
@@ -366,10 +366,10 @@ function Dashboard() {
         </span>
       </nav >
 
-      <div className='w-full h-[90vh] flex sm:gap-4'>
+      <div className='w-full h-full flex sm:gap-4 pb-12'>
 
         {/* sidebar */}
-        <div className={`${isChatWindowOpen ? "hidden sm:block sm:w-[25%]" : "w-full sm:w-[25%]"} max-h-[90vh] bg-black-1 rounded-2xl px-2 sm:px-5 sm:pt-5`}>
+        <div className={`${isChatWindowOpen ? "hidden sm:block sm:w-[25%]" : "w-full sm:w-[25%]"}  bg-black-1 rounded-2xl px-2 sm:px-5 sm:pt-5`}>
           {/* search box  */}
           <div className={`rounded-xl w-full flex items-center justify-between border-2 border-black-4`}>
             <input
@@ -460,13 +460,13 @@ function Dashboard() {
 
         </div>
         {/* chatwindow */}
-        <section className={`${isChatWindowOpen ? "w-full sm:w-[75%]" : "hidden sm:w-[75%]"} max-h-[90vh] bg-black-1 rounded-2xl`}>
+        <section className={`${isChatWindowOpen ? "w-full sm:w-[75%]" : "hidden sm:w-[75%]"} bg-black-1 rounded-2xl`}>
           {/* chatWindow */}
           {
             currentChat && (() => {
               const otherUser = currentChat?.users?.find(user => user?._id !== userId)
               return (
-                <div className='h-[87vh] m-1'>
+                <div className='h-[87vh] m-1 flex flex-col justify-between'>
                   <header className='mt-2 mx-1 rounded-xl h-[10vh] bg-black-3 flex items-center justify-between'>
                     <span className='sm:ml-4 flex items-center sm:gap-4'>
                       <button className='bg-black-2 h-[6vh] sm:h-[8vh]   ml-2 mr-4 px-2 sm:px-5 rounded-full hover:bg-black-5'
@@ -486,7 +486,7 @@ function Dashboard() {
                       <FaEllipsisVertical className='text-white-1 font-bold  sm:text-xl' />
                     </Button>
                   </header>
-                  <section className='mt-2 mx-1 rounded-xl bg-black-3 h-[75vh] flex flex-col'>
+                  <section className='mt-2 mx-1 rounded-xl bg-black-3 h-[75vh] flex flex-col justify-between'>
                     <div className='h-[72vh] overflow-y-scroll p-4 pb-16' ref={chatContainerRef}>
                       {/* all messages */}
                       {
